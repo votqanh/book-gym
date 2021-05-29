@@ -17,10 +17,10 @@ import config
 def process(person):
     print(f'Booking for {person[0]}...')
 
-    if times:
-        book(person, times)
-    else:
-        book(person)
+    # if times:
+    #     book(person, times)
+    # else:
+    book(person)
 
 
 def submitted(driver, person):
@@ -101,30 +101,28 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
             print(e)
 
 
-start_time = time.time()
-
-going = config.family
-
-times = []
-
 print("\nISY GYM BOOKER")
 
 dont_book = [x.capitalize() for x in input("\nIs anyone not going today?\n").split()]
 
-print('\nWhen do you want to go? Enter 1 time slot at a time or leave blank for default 4:00 PM and 4:30 PM.')
+# print('\nWhen do you want to go? Enter 1 time slot at a time or leave blank for default 4:00 PM and 4:30 PM.')
+#
+# times = []
+# for _ in range(2):
+#     a = input()
+#     if a == '':
+#         break
+#     else:
+#         times.append(a)
 
-for _ in range(2):
-    a = input()
-    if a == '':
-        break
-    else:
-        times.append(a)
-
+going = config.family
 going = [x for x in going if x[0] not in dont_book]
 
-pool = Pool(cpu_count() - 1)
+start_time = time.time()
+
+pool = Pool(len(going))
 pool.map(process, going)
 pool.close()
 pool.join()
 
-print("\nCompleted all bookings in", int(time.time() - start_time + 0.5), "seconds.\n")
+print("\nCompleted all bookings in", round(time.time() - start_time), "seconds.\n")
