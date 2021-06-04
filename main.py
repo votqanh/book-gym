@@ -25,7 +25,7 @@ def process(person):
 
 def book(data, time_slot=['4:00 PM', '4:30 PM']):
     options = Options()
-    options.headless = True
+    options.headless = False
     fp = webdriver.FirefoxProfile()
     path = config.path
 
@@ -79,7 +79,7 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
             driver.find_element_by_xpath('//*[@id="gform_submit_button_68"]').click()
 
             # wait for confirmation
-            while not driver.find_elements_by_xpath('//*[@id="gform_submit_button_68"]'):
+            while driver.find_elements_by_xpath('//*[@id="gform_submit_button_68"]'):
                 pass
 
             while not driver.find_elements_by_xpath('//*[@id="post-1608"]/div/div/div[1]/div/h1'):
