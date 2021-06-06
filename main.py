@@ -15,21 +15,21 @@ import config
 
 
 def process(person):
-    print(f'\nBooking for {person[0]}...')
+    print('\n', end='')
+    print(f'Booking for {person[0]}...')
 
-    # if times:
-    #     book(person, times)
-    # else:
-    book(person)
+    if times:
+        book(person, times)
+    else:
+        book(person)
 
 
 def book(data, time_slot=['4:00 PM', '4:30 PM']):
     options = Options()
-    options.headless = False
+    options.headless = True
     fp = webdriver.FirefoxProfile()
-    path = config.path
 
-    with webdriver.Firefox(executable_path=path, firefox_profile=fp, options=options) as driver:
+    with webdriver.Firefox(executable_path=config.driver_path, firefox_profile=fp, options=options) as driver:
         driver.get('https://forms.isyedu.org/fitness-gym-weight-room-sign-up/')
 
         try:
@@ -73,7 +73,7 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
                     # print('is unavailable')
 
             if cnt == len(time_slot):
-                print(data[0], ': Could not book because both requested timeslots are unavailable')
+                print(f'\n{data[0]}: Could not book because both requested timeslots are unavailable')
                 return
 
             driver.find_element_by_xpath('//*[@id="gform_submit_button_68"]').click()
@@ -93,7 +93,7 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
                 print('Cannot book twice')
 
         except Exception as e:
-            print(f'{data[0]}: Could not book because')
+            print(f'\n{data[0]}: Could not book because')
             print(e)
 
 
@@ -104,17 +104,17 @@ dont_book = [x.capitalize() for x in input("\nIs anyone not going today?\n").spl
 if dont_book:
     print('')
 
-print('Default timeslots: 4:00 PM and 4:30 PM')
+# print('Default timeslots: 4:00 PM and 4:30 PM')
 
-# print('\nWhen do you want to go? Enter 1 time slot at a time or leave blank for default 4:00 PM and 4:30 PM.')
-#
-# times = []
-# for _ in range(2):
-#     a = input()
-#     if a == '':
-#         break
-#     else:
-#         times.append(a)
+print('\nWhen do you want to go? Enter 1 time slot at a time or leave blank for default 4:00 PM and 4:30 PM.')
+
+times = []
+for _ in range(2):
+    a = input()
+    if a == '':
+        break
+    else:
+        times.append(a)
 
 going = config.family
 going = [x for x in going if x[0] not in dont_book]
@@ -126,4 +126,9 @@ pool.map(process, going)
 pool.close()
 pool.join()
 
-print("\nCompleted all bookings in", round(time.time() - start_time), "seconds.\n")
+runtime = str(round(time.time() - start_time))
+
+print("\nCompleted all bookings in", runtime, "seconds.\n")
+
+with open(config.log_path, 'a') as f:
+    f.write('\n'.join([datetime.datetime.now().strftime("%Y-%-m-%-d"), str(len(going)), runtime, '\n']))
