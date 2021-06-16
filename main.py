@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 
-import datetime
-import time
+from datetime import datetime, date, timedelta
+from time import time
 from multiprocessing import Pool
+from multiprocessing import Lock
+import enquiries
 
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support import expected_conditions as EC
@@ -15,16 +18,17 @@ import config
 
 
 def process(person):
-    print('\n', end='')
-    print(f'Booking for {person[0]}...')
+    print_lock.acquire()
+    print(f'\nBooking for {person[0]}...')
+    print_lock.release()
 
     if times:
         book(person, times)
     else:
-        book(person)
+        book(person, ['4:00 PM', '4:30 PM'])
 
 
-def book(data, time_slot=['4:00 PM', '4:30 PM']):
+def book(data, time_slot):
     options = Options()
     options.headless = True
     fp = webdriver.FirefoxProfile()
@@ -44,36 +48,28 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
             value = '1607' if data[0] == config.family[-1][0] else '798'
             Select(driver.find_element_by_xpath('//*[@id="input_68_7"]')).select_by_value(value)
 
-            today = datetime.date.today()
-            WebDriverWait(driver, 40).until(EC.invisibility_of_element_located(
+            WebDriverWait(driver, 100).until(EC.invisibility_of_element_located(
                 (By.CSS_SELECTOR, 'div[class="ga_monthly_schedule_wrapper ga_spinner"]')))
 
-            driver.find_element_by_css_selector(f'td[date-go="{today.strftime("%Y-%m-%-d")}"]').click()
-            time.sleep(0.5)
+            driver.find_element_by_css_selector(f'td[date-go="{book_date.strftime("%Y-%m-%-d")}"]').click()
+            WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, 'slots-title')))
 
-            slot = f'{today.strftime("%A, %B %-d %Y")} at '
+            slot = f'{book_date.strftime("%A, %B %-d %Y")} at '
             cnt = 0
-
-            # print('')
 
             for t in time_slot:
                 el = driver.find_elements_by_css_selector(f'label[lang_slot="{slot + t}"]')
-                # print(f'{data[0]}: {t}', end=' ')
 
                 if el:
                     driver.execute_script("arguments[0].click();", el[0])
-
-                    # if driver.find_elements_by_xpath('//*[@id="ga_selected_bookings"]/div'):
-                    #     print('has been selected')
-                    # else:
-                    #     cnt += 1
-                    #     print('is unavailable')
                 else:
                     cnt += 1
-                    # print('is unavailable')
 
-            if cnt == len(time_slot):
-                print(f'\n{data[0]}: Could not book because both requested timeslots are unavailable')
+            l = len(time_slot)
+
+            if cnt == l:
+                print(f'\n{data[0]}: Could not book because ' + ('both' if l == 2 else 'the') +
+                      ' requested timeslot' + ('s are' if l == 2 else ' is') + ' unavailable')
                 return
 
             driver.find_element_by_xpath('//*[@id="gform_submit_button_68"]').click()
@@ -92,43 +88,49 @@ def book(data, time_slot=['4:00 PM', '4:30 PM']):
             else:
                 print('Cannot book twice')
 
-        except Exception as e:
-            print(f'\n{data[0]}: Could not book because')
-            print(e)
+        except TimeoutException:
+            print(f'\n{data[0]}: Timeout')
 
 
 print("\nISY GYM BOOKER")
 
 dont_book = [x.capitalize() for x in input("\nIs anyone not going today?\n").split()]
 
-if dont_book:
-    print('')
-
-# print('Default timeslots: 4:00 PM and 4:30 PM')
-
-print('\nWhen do you want to go? Enter 1 time slot at a time or leave blank for default 4:00 PM and 4:30 PM.')
-
-times = []
-for _ in range(2):
-    a = input()
-    if a == '':
-        break
-    else:
-        times.append(a)
-
 going = config.family
 going = [x for x in going if x[0] not in dont_book]
 
-start_time = time.time()
+if dont_book:
+    print()
+
+options = ['Today', 'Tomorrow']
+when = enquiries.choose('Pick one', options)
+print("\nBooking for", end=' ')
+
+if when == 'Today':
+    when = 0
+    print("today")
+else:
+    when = 1
+    print("tomorrow")
+
+book_date = date.today() + timedelta(days=when)
+
+print('\nEnter time or leave blank for default 4:00 PM - 4:30 PM.')
+
+times = []
+a = input()
+if a != '':
+    # book 2 consecutive timeslots - 1 hour in total
+    times = [a, (datetime.strptime(a, '%I:%M %p') + timedelta(minutes=30)).strftime('%-I:%M %p')]
+
+print_lock = Lock()
+start_time = time()
 
 pool = Pool(len(going))
 pool.map(process, going)
 pool.close()
 pool.join()
 
-runtime = str(round(time.time() - start_time))
+runtime = str(round(time() - start_time))
 
 print("\nCompleted all bookings in", runtime, "seconds.\n")
-
-with open(config.log_path, 'a') as f:
-    f.write('\n'.join([datetime.datetime.now().strftime("%Y-%-m-%-d"), str(len(going)), runtime, '\n']))
