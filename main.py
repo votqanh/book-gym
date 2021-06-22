@@ -29,11 +29,11 @@ def process(person):
 
 
 def book(data, time_slot):
-    options = Options()
-    options.headless = True
+    opt = Options()
+    opt.headless = True
     fp = webdriver.FirefoxProfile()
 
-    with webdriver.Firefox(executable_path=config.driver_path, firefox_profile=fp, options=options) as driver:
+    with webdriver.Firefox(executable_path=config.driver_path, firefox_profile=fp, options=opt) as driver:
         driver.get('https://forms.isyedu.org/fitness-gym-weight-room-sign-up/')
 
         try:
@@ -115,11 +115,11 @@ else:
 
 book_date = date.today() + timedelta(days=when)
 
-print('\nEnter time or leave blank for default 4:00 PM - 4:30 PM.')
+print('\nEnter time or leave blank for default 4:00 PM - 5:00 PM.')
 
 times = []
 a = input()
-if a != '':
+if a:
     # book 2 consecutive timeslots - 1 hour in total
     times = [a, (datetime.strptime(a, '%I:%M %p') + timedelta(minutes=30)).strftime('%-I:%M %p')]
 
@@ -132,5 +132,4 @@ pool.close()
 pool.join()
 
 runtime = str(round(time() - start_time))
-
 print("\nCompleted all bookings in", runtime, "seconds.\n")
