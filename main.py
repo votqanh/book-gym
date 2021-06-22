@@ -55,7 +55,6 @@ def book(data, time_slot):
             WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, 'slots-title')))
 
             slot = f'{book_date.strftime("%A, %B %-d %Y")} at '
-            cnt = 0
 
             for t in time_slot:
                 el = driver.find_elements_by_css_selector(f'label[lang_slot="{slot + t}"]')
@@ -63,14 +62,8 @@ def book(data, time_slot):
                 if el:
                     driver.execute_script("arguments[0].click();", el[0])
                 else:
-                    cnt += 1
-
-            l = len(time_slot)
-
-            if cnt == l:
-                print(f'\n{data[0]}: Could not book because ' + ('both' if l == 2 else 'the') +
-                      ' requested timeslot' + ('s are' if l == 2 else ' is') + ' unavailable')
-                return
+                    print(f'Cannot book because {t} is unavailable')
+                    return
 
             driver.find_element_by_xpath('//*[@id="gform_submit_button_68"]').click()
 
@@ -115,7 +108,7 @@ else:
 
 book_date = date.today() + timedelta(days=when)
 
-print('\nEnter time or leave blank for default 4:00 PM - 5:00 PM.')
+print('\nEnter time or leave blank for 4:00 PM - 5:00 PM.')
 
 times = []
 a = input()
