@@ -45,7 +45,12 @@ def book(data, time_slot):
 
             driver.find_element_by_xpath('//*[@id="choice_68_13_1"]').click()
 
-            value = '1607' if data[0] == config.family[-1][0] else '798'
+            if data[0] == config.family[-1][0]:
+                value = '1607'
+                time_slot.pop()
+            else:
+                value = '798'
+
             Select(driver.find_element_by_xpath('//*[@id="input_68_7"]')).select_by_value(value)
 
             WebDriverWait(driver, 100).until(EC.invisibility_of_element_located(
@@ -54,15 +59,15 @@ def book(data, time_slot):
             driver.find_element_by_css_selector(f'td[date-go="{book_date.strftime("%Y-%m-%-d")}"]').click()
             WebDriverWait(driver, 5).until(EC.visibility_of_element_located((By.CLASS_NAME, 'slots-title')))
 
-            slot = f'{book_date.strftime("%A, %B %-d %Y")} at '
+            d = f'{book_date.strftime("%A, %B %-d %Y")} at '
 
             for t in time_slot:
-                el = driver.find_elements_by_css_selector(f'label[lang_slot="{slot + t}"]')
+                el = driver.find_elements_by_css_selector(f'label[lang_slot="{d + t}"]')
 
                 if el:
                     driver.execute_script("arguments[0].click();", el[0])
                 else:
-                    print(f'Cannot book because {t} is unavailable')
+                    print(f'\n{data[0]}: Cannot book because {t} is unavailable')
                     return
 
             driver.find_element_by_xpath('//*[@id="gform_submit_button_68"]').click()
